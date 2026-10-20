@@ -1,0 +1,12 @@
+# 本地 HTTP 服务与 GUI 后端
+fastapi>=0.100
+uvicorn>=0.23
+
+# 所有 Pixiv 接口与图片下载
+httpx>=0.24
+
+# 动图（ugoira）解码并重新合成 GIF
+pillow>=9.0
+
+# 登录时通过 DevTools 协议读取浏览器 cookie
+websockets>=11.0

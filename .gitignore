@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 依赖（用 pip install -r requirements.txt 安装，不入库）
+vendor/
+.venv/
+venv/
+
+# 运行时数据：登录凭据与浏览器登录态，绝不能提交
+.state/
+.profile/
+
+# 下载与调试产物
+_smoke_out/
+_e2e_out/
+_tmp_tests/
+_probe_profile/
+*.part

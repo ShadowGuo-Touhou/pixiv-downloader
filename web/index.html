@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixiv 批量下载器</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Pixiv 批量下载器</h1>
+    <div class="row">
+      <span id="auth-badge" class="badge">未登录</span>
+      <button id="btn-login">登录 Pixiv</button>
+      <button id="btn-cookie" class="ghost">用 Cookie 登录</button>
+      <button id="btn-logout" class="ghost" hidden>退出</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>1 · 作者</h2>
+      <div class="row">
+        <input id="user-url" type="text" placeholder="https://www.pixiv.net/users/114430563">
+        <button id="btn-parse">解析</button>
+        <span id="user-info" class="hint"></span>
+      </div>
+      <div class="hint">支持 /users/123 主页链接、纯数字 id。作品、漫画、小说都会一起抓。</div>
+    </section>
+
+    <section class="card">
+      <h2>2 · 选项</h2>
+      <div class="grid">
+        <div class="field">
+          <label>保存目录</label>
+          <div class="row">
+            <input id="out-dir" type="text" style="flex:1;min-width:150px" placeholder="选择或输入目录">
+            <button id="btn-pick" class="ghost">选择…</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>R-18 / R-18G</label>
+          <select id="r18">
+            <option value="all">全部（含 R-18 / R-18G）</option>
+            <option value="safe">只要全年龄</option>
+            <option value="only">只要 R-18 / R-18G</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>时区（决定文件名里的日期）</label>
+          <select id="tz">
+            <option value="jst">Pixiv 时间（JST）</option>
+            <option value="local">本机时间</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>并发数</label>
+          <input id="concurrency" type="number" min="1" max="8" value="3">
+        </div>
+
+        <div class="field">
+          <label>请求间隔（毫秒）</label>
+          <input id="interval" type="number" min="0" max="5000" step="100" value="600">
+        </div>
+
+        <div class="field">
+          <label>起始日期（含）</label>
+          <input id="date-from" type="date">
+        </div>
+
+        <div class="field">
+          <label>结束日期（含）</label>
+          <input id="date-to" type="date">
+        </div>
+      </div>
+
+      <div class="checks">
+        <label><input id="inc-illust" type="checkbox" checked> 插画</label>
+        <label><input id="inc-manga" type="checkbox" checked> 漫画</label>
+        <label><input id="inc-novel" type="checkbox" checked> 小说</label>
+        <label><input id="inc-ugoira" type="checkbox" checked> 动图（转 GIF）</label>
+      </div>
+      <div class="hint">页数超过 8 张的作品会单独放进一个文件夹，文件夹名是去掉结尾序号的文件名。</div>
+    </section>
+
+    <section class="card">
+      <h2>3 · 生成计划</h2>
+      <div class="row">
+        <button id="btn-plan">生成计划（只抓清单，不下载）</button>
+        <button id="btn-diag" class="ghost">API 诊断</button>
+        <span id="plan-status" class="hint"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>4 · 下载</h2>
+      <div class="progress"><div id="bar"></div></div>
+      <div class="stats">
+        <span>状态 <b id="st-status">-</b></span>
+        <span>作品 <b id="st-works">0</b></span>
+        <span>文件 <b id="st-total">0</b></span>
+        <span>完成 <b id="st-done">0</b></span>
+        <span>跳过 <b id="st-skipped">0</b></span>
+        <span>失败 <b id="st-failed">0</b></span>
+        <span>已下载 <b id="st-bytes">0 MB</b></span>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="btn-start" disabled>开始下载</button>
+        <button id="btn-pause" class="ghost" disabled>暂停</button>
+        <button id="btn-cancel" class="ghost" disabled>取消</button>
+        <button id="btn-retry" class="ghost" disabled>重试失败项</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>5 · 文件明细</h2>
+      <div class="list-wrap">
+        <table>
+          <thead>
+            <tr><th style="width:80px">状态</th><th style="width:90px">日期</th><th>标题</th><th>文件</th></tr>
+          </thead>
+          <tbody id="items"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>日志</h2>
+      <pre id="log"></pre>
+    </section>
+  </main>
+
+  <div id="cookie-modal" class="modal" hidden>
+    <div class="modal-box">
+      <h2>用 Cookie 登录</h2>
+      <p class="hint" style="margin-top:0">
+        适合「已经在自己日常浏览器里登录了 Pixiv」的情况，把登录态直接搬过来，不用再登一次。
+      </p>
+      <ol class="steps">
+        <li>在<b>你日常用的浏览器</b>里打开 <code>pixiv.net</code>，确认右上角是你的头像</li>
+        <li>按 <kbd>F12</kbd> 打开开发者工具，切到 <b>网络 / Network</b> 标签</li>
+        <li>按 <kbd>F5</kbd> 刷新页面</li>
+        <li>点列表里任意一条 <code>pixiv.net</code> 的请求</li>
+        <li>右侧找 <b>请求标头 / Request Headers</b>，把 <code>cookie:</code> 后面那一整行复制下来</li>
+      </ol>
+      <p class="hint">
+        更省事的办法：<b>应用 / Application</b> → <b>存储 / Cookies</b> →
+        <code>https://www.pixiv.net</code>，找到 <code>PHPSESSID</code> 那一行，
+        只复制它的<b>值</b>粘进来就行，程序会自动补成 <code>PHPSESSID=值</code>。
+      </p>
+      <textarea id="cookie-input" placeholder="PHPSESSID=1234567_abcdef…   （完整 Cookie 或只这个值都行）"></textarea>
+      <div class="row" style="margin-top:12px">
+        <button id="cookie-save">验证并登录</button>
+        <button id="cookie-cancel" class="ghost">取消</button>
+        <span id="cookie-status" class="hint"></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
